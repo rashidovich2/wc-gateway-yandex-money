@@ -215,6 +215,7 @@ function jawYandexMoneyInit(){
             $description .= ', '. esc_attr( $item['name'] ) . $_description .' ('.$item["qty"].')';
         }
       }
+
       if(!empty($this->currency)) $kurs = str_replace(',', '.', $this->currency); else $kurs = 1;
       $order->billing_phone = str_replace(array('+', '-', ' ', '(', ')', '.'), array('', '', '', '', '', ''), $order->billing_phone);
 
@@ -238,6 +239,8 @@ function jawYandexMoneyInit(){
         ),
       );
 
+      $yandex_money_args = apply_filters( 'woocommerce_yandex_money_args', $yandex_money_args );
+      return $yandex_money_args;
     }
 
     /**
@@ -261,7 +264,6 @@ function jawYandexMoneyInit(){
       foreach ($yandexArguments as $name => $value) {
         $form .= '<input type="hidden" name="'.$name.'" value="'.$value.'" />';
       }
-
       $form .= '</form>';
 
       return $form;
