@@ -45,7 +45,7 @@ function jawYandexMoneyInit(){
       $this -> title = $this -> settings['title'];
       $this -> description = $this -> settings['description'];
       $this -> scid = $this -> settings['scid'];
-      $this -> ShopID = $this -> settings['ShopID'];
+      $this -> shopId = $this -> settings['ShopID'];
       $this -> demomode = $this -> settings['demomode'];
       $this->debug = $this->settings['debug'];
 
@@ -226,25 +226,31 @@ function jawYandexMoneyInit(){
       $order->billing_phone = str_replace(array('+', '-', ' ', '(', ')', '.'), array('', '', '', '', '', ''), $order->billing_phone);
 
       $yandex_money_args = array(
-        'CustomerNumber' =>  'Order ' . ltrim($order->get_order_number(), '#№'),
-        'orderNumber' =>  $order->id,
-        'cps_phone' =>  $order->billing_phone,
-        'CustName' => $order->billing_first_name.' '.$order->billing_last_name,
-        'CustAddr' => $order->billing_city.', '.$order->billing_address_1,
-        'cps_email' =>  $order->billing_email,
-        'CustEMail' =>  $order->billing_email,
-        'Sum' => number_format($order->order_total*$kurs, 2, '.', ''),
-        'scid' => $this->scid,
-        'ShopID' => $this->ShopID,
-        'OrderDetails' => substr($orderDetails, 0, 255),
-        'shopSuccessURL' => $this->result_saph_ymoney_url . '&order=' . $order->id, //@todo shop urls
-        'shopFailURL' => $this->yandexfailUrl . '&order=' . $order->id,
+        'shopId' => $this->shopId, // 	Идентификатор Контрагента, выдается Оператором.
+//        'shopArticleId' => $this->shopArticleId, // Идентификатор товара, выдается Оператором. Применяется, если Контрагент использует несколько платежных форм для разных товаров.
+        'scid' => $this->scid, // Номер витрины Контрагента, выдается Оператором.
+        'sum' => number_format($order->order_total*$kurs, 2, '.', ''), // Стоимость заказа.
+        'customerNumber' =>  'Order ' . ltrim($order->get_order_number(), '#'), //Идентификатор плательщика в ИС Контрагента. В качестве идентификатора может использоваться номер договора плательщика, логин плательщика и т. п. Возможна повторная оплата по одному и тому же идентификатору плательщика.
+        'orderNumber' =>  $order->id, // Уникальный номер заказа в ИС Контрагента. Уникальность контролируется Оператором в сочетании с параметром shopId. Если платеж с таким номер заказа уже был успешно проведен, то повторные попытки оплаты будут отвергнуты Оператором.
+        //@todo shop urls
+        'shopSuccessURL' => $this->result_saph_ymoney_url . '&order=' . $order->id, // URL, на который нужно отправить плательщика в случае успеха перевода. Используется при выборе соответствующей опции подключения Контрагента (см. раздел 6.1 «Параметры подключения Контрагента»).
+        'shopFailURL' => $this->yandexfailUrl . '&order=' . $order->id, // URL, на который нужно отправить плательщика в случае ошибки оплаты. Используется при выборе соответствующей опции подключения Контрагента.
+        'cps_email' =>  $order->billing_email, // Адрес электронной почты плательщика. Если он передан, то соответствующее поле на странице подтверждения платежа будет предзаполнено (шаг 3 на схеме выше).
+        'cps_phone' =>  $order->billing_phone, // Номер мобильного телефона плательщика. Если он передан, то соответствующее поле на странице подтверждения платежа будет предзаполнено (шаг 3 на схеме выше). Номер телефона используется при оплате наличными через терминалы.
         'paymentType' => array(
-          'PC' => __('Со счета в Яндекс.Деньгах','jaw_yandex_money'),
-          'AC' => __('С банковской карты','jaw_yandex_money'),
+          'PC' => __('Оплата из кошелька в Яндекс.Деньгах','jaw_yandex_money'),
+          'AC' => __('Оплата с банковской карты','jaw_yandex_money'),
           'GP' => __('По коду через терминал','jaw_yandex_money'),
           'WM' => __('Со счета WebMoney','jaw_yandex_money'),
         ),
+
+        // Служебные параметры, используемые в email-уведомлениях о переводе:
+        'CustName' => $order->billing_first_name.' '.$order->billing_last_name,
+        'CustAddr' => $order->billing_city.', '.$order->billing_address_1,
+        'CustEMail' =>  $order->billing_email,
+        'OrderDetails' => substr($orderDetails, 0, 255),
+
+        // Параметры, добавляемые Контрагентом:
         'cms_name' => 'wordpress_woocommerce',
       );
 
