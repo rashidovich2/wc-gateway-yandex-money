@@ -138,23 +138,29 @@ function jawYandexMoneyInit(){
 
     /**
      * Receipt Page
-     **/
-    function receipt_page($order_id){
+     *
+     * @access public
+     * @param $order_id
+     */
+    public function receipt_page($order_id){
       //echo '<p>Thank you for your order, please click the button below to pay with PayU</p>';
       echo $this -> generate_payment_form($order_id);
     }
 
     /**
-     * @access private
+     * Function to prepare form arguments
+     *
+     * @access protected
      * @param $order
+     * @return array|mixed|void
      */
-    function get_form_arguments($order) {
+    protected function get_form_arguments($order) {
 
       global $woocommerce;
 
       $order_items = $order->get_items( apply_filters( 'woocommerce_admin_order_item_types', array( 'line_item', 'fee' ) ) );
       $count  = 0 ;
-      $description_ = $description = '';
+      $description_ = $orderDetails = '';
       foreach($order_items as $item_id => $item) {
         $description_ .= esc_attr( $item['name'] );
         $v = explode('.', WOOCOMMERCE_VERSION);
@@ -197,7 +203,7 @@ function jawYandexMoneyInit(){
               $_description = $_description. '] - '.$item['qty']. '';
             else $_description = $_description. ' - '.$item['qty']. '';
           }
-          if(($count + 1) != count($order_items) && !empty($description_)) $description .=  $description_.$_description . ', '; else $description .=  ''.$description_.$_description;
+          if(($count + 1) != count($order_items) && !empty($description_)) $orderDetails .=  $description_.$_description . ', '; else $orderDetails .=  ''.$description_.$_description;
           $count++;
           $description_ = $_description = '';
         }else {
@@ -211,8 +217,8 @@ function jawYandexMoneyInit(){
               }
             }
           }
-          if($item_id == 0)$description = esc_attr( $item['name'] ) . $_description .' ('.$item["qty"].')'; else
-            $description .= ', '. esc_attr( $item['name'] ) . $_description .' ('.$item["qty"].')';
+          if($item_id == 0)$orderDetails = esc_attr( $item['name'] ) . $_description .' ('.$item["qty"].')'; else
+            $orderDetails .= ', '. esc_attr( $item['name'] ) . $_description .' ('.$item["qty"].')';
         }
       }
 
@@ -223,12 +229,14 @@ function jawYandexMoneyInit(){
         'CustomerNumber' =>  'Order ' . ltrim($order->get_order_number(), '#№'),
         'orderNumber' =>  $order->id,
         'cps_phone' =>  $order->billing_phone,
+        'CustName' => $order->billing_first_name.' '.$order->billing_last_name,
+        'CustAddr' => $order->billing_city.', '.$order->billing_address_1,
         'cps_email' =>  $order->billing_email,
         'CustEMail' =>  $order->billing_email,
         'Sum' => number_format($order->order_total*$kurs, 2, '.', ''),
         'scid' => $this->scid,
         'ShopID' => $this->ShopID,
-        'comment' => substr($description, 0, 255),
+        'OrderDetails' => substr($orderDetails, 0, 255),
         'shopSuccessURL' => $this->result_saph_ymoney_url . '&order=' . $order->id, //@todo shop urls
         'shopFailURL' => $this->yandexfailUrl . '&order=' . $order->id,
         'paymentType' => array(
@@ -237,6 +245,7 @@ function jawYandexMoneyInit(){
           'GP' => __('По коду через терминал','jaw_yandex_money'),
           'WM' => __('Со счета WebMoney','jaw_yandex_money'),
         ),
+        'cms_name' => 'wordpress_woocommerce',
       );
 
       $yandex_money_args = apply_filters( 'woocommerce_yandex_money_args', $yandex_money_args );
