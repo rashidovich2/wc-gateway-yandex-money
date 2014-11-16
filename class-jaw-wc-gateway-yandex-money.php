@@ -53,7 +53,6 @@ function jawYandexMoneyInit(){
       if ( 'yes' == $this->debug )
         $this->log = $woocommerce->logger();
 
-
       $this -> msg['message'] = '';
       $this -> msg['class'] = '';
 
@@ -140,9 +139,105 @@ function jawYandexMoneyInit(){
     /**
      * Receipt Page
      **/
-    function receipt_page($order){
+    function receipt_page($order_id){
       //echo '<p>Thank you for your order, please click the button below to pay with PayU</p>';
-      echo $this -> generate_payment_form($order);
+      echo $this -> generate_payment_form($order_id);
+    }
+
+    /**
+     * @access private
+     * @param $order
+     */
+    function get_form_arguments($order) {
+
+      global $woocommerce;
+
+      $order_items = $order->get_items( apply_filters( 'woocommerce_admin_order_item_types', array( 'line_item', 'fee' ) ) );
+      $count  = 0 ;
+      $description_ = $description = '';
+      foreach($order_items as $item_id => $item) {
+        $description_ .= esc_attr( $item['name'] );
+        $v = explode('.', WOOCOMMERCE_VERSION);
+        if($v[0] >= 2) {
+          if ( $metadata = $order->has_meta( $item_id )) {
+            $_description = '';
+            $is_ = false;
+            $is_count = 0;
+            foreach ( $metadata as $meta ) {
+
+              // Skip hidden core fields
+              if ( in_array( $meta['meta_key'], apply_filters( 'woocommerce_hidden_order_itemmeta', array(
+                '_qty',
+                '_tax_class',
+                '_product_id',
+                '_variation_id',
+                '_line_subtotal',
+                '_line_subtotal_tax',
+                '_line_total',
+                '_line_tax',
+              ) ) ) ) continue;
+
+              // Handle serialised fields
+              if ( is_serialized( $meta['meta_value'] ) ) {
+                if ( is_serialized_string( $meta['meta_value'] ) ) {
+                  // this is a serialized string, so we should display it
+                  $meta['meta_value'] = maybe_unserialize( $meta['meta_value'] );
+                } else {
+                  continue;
+                }
+              }
+              $is_ = true;
+              if($is_count == 0)
+                $_description .= esc_attr(' ['.$meta['meta_key'] . ': ' . $meta['meta_value'] );
+              else
+                $_description .= esc_attr(', '.$meta['meta_key'] . ': ' . $meta['meta_value'] );
+              $is_count++;
+            }
+            if($is_count > 0)
+              $_description = $_description. '] - '.$item['qty']. '';
+            else $_description = $_description. ' - '.$item['qty']. '';
+          }
+          if(($count + 1) != count($order_items) && !empty($description_)) $description .=  $description_.$_description . ', '; else $description .=  ''.$description_.$_description;
+          $count++;
+          $description_ = $_description = '';
+        }else {
+          if ( $metadata = $item["item_meta"]) {
+            $_description = '';
+            foreach($metadata as $k =>  $meta) {
+              if($k == 0)
+                $_description .= esc_attr(' - '.$meta['meta_name'] . ': ' . $meta['meta_value'] . '');
+              else {
+                $_description .= esc_attr('; '.$meta['meta_name'] . ': ' . $meta['meta_value'] . '');
+              }
+            }
+          }
+          if($item_id == 0)$description = esc_attr( $item['name'] ) . $_description .' ('.$item["qty"].')'; else
+            $description .= ', '. esc_attr( $item['name'] ) . $_description .' ('.$item["qty"].')';
+        }
+      }
+      if(!empty($this->currency)) $kurs = str_replace(',', '.', $this->currency); else $kurs = 1;
+      $order->billing_phone = str_replace(array('+', '-', ' ', '(', ')', '.'), array('', '', '', '', '', ''), $order->billing_phone);
+
+      $yandex_money_args = array(
+        'CustomerNumber' =>  'Order ' . ltrim($order->get_order_number(), '#№'),
+        'orderNumber' =>  $order->id,
+        'cps_phone' =>  $order->billing_phone,
+        'cps_email' =>  $order->billing_email,
+        'CustEMail' =>  $order->billing_email,
+        'Sum' => number_format($order->order_total*$kurs, 2, '.', ''),
+        'scid' => $this->scid,
+        'ShopID' => $this->ShopID,
+        'comment' => substr($description, 0, 255),
+        'shopSuccessURL' => $this->result_saph_ymoney_url . '&order=' . $order->id, //@todo shop urls
+        'shopFailURL' => $this->yandexfailUrl . '&order=' . $order->id,
+        'paymentType' => array(
+          'PC' => __('Со счета в Яндекс.Деньгах','jaw_yandex_money'),
+          'AC' => __('С банковской карты','jaw_yandex_money'),
+          'GP' => __('По коду через терминал','jaw_yandex_money'),
+          'WM' => __('Со счета WebMoney','jaw_yandex_money'),
+        ),
+      );
+
     }
 
     /**
@@ -160,8 +255,14 @@ function jawYandexMoneyInit(){
       $order = class_exists('WC_Order') ? new WC_Order( $order_id ) : new woocommerce_order( $order_id );
       $yandexMoneyURL = ('yes' == $this->demomode) ? $this->testurl : $this->liveurl;
 
-      $order_items = $order->get_items( apply_filters( 'woocommerce_admin_order_item_types', array( 'line_item', 'fee' ) ) );
-      $count  = 0 ;
+      $yandexArguments = $this->get_form_arguments($order);
+
+      $form = '<form name="ShopForm" method="POST" id="submit_JAW_Yandex_Money_Gateway_Form" action="'.$yandexMoneyURL.'">';
+      foreach ($yandexArguments as $name => $value) {
+        $form .= '<input type="hidden" name="'.$name.'" value="'.$value.'" />';
+      }
+
+      $form .= '</form>';
 
       return $form;
 
@@ -209,7 +310,7 @@ function jawYandexMoneyInit(){
    * Add the Gateway to WooCommerce
    **/
   function jawYandexMoneyPaymentGateways($methods) {
-    $methods[] = 'jawYandexMoneyWCPaymentGateway';
+    $methods[] = 'jaw_yandex_money';
     return $methods;
   }
   add_filter('woocommerce_payment_gateways', 'jawYandexMoneyPaymentGateways' );
