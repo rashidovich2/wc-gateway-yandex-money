@@ -148,6 +148,9 @@ function jawYandexMoneyInit(){
       );
     }
 
+    /**
+     * Admin Panel options
+     */
     public function admin_options(){
       echo '<h3>'.__('Оплата Яндекс.Деньги','jaw_yandex_money').'</h3>';
       echo '<h5>'.__('Для подключения системы Яндекс.Деньги нужно одобрить заявку на подключение ','jaw_yandex_money');
@@ -164,7 +167,7 @@ function jawYandexMoneyInit(){
      * Output for the order received page.
      *
      * @access public
-     * @return void
+     * @param $order_id
      */
     public function receipt_page($order_id){
 
@@ -197,17 +200,17 @@ function jawYandexMoneyInit(){
             $is_count = 0;
             foreach ( $metadata as $meta ) {
 
-              // Skip hidden core fields
-              if ( in_array( $meta['meta_key'], apply_filters( 'woocommerce_hidden_order_itemmeta', array(
-                '_qty',
-                '_tax_class',
-                '_product_id',
-                '_variation_id',
-                '_line_subtotal',
-                '_line_subtotal_tax',
-                '_line_total',
-                '_line_tax',
-              ) ) ) ) continue;
+//              // Skip hidden core fields
+//              if ( in_array( $meta['meta_key'], apply_filters( 'woocommerce_hidden_order_itemmeta', array(
+//                '_qty',
+//                '_tax_class',
+//                '_product_id',
+//                '_variation_id',
+//                '_line_subtotal',
+//                '_line_subtotal_tax',
+//                '_line_total',
+//                '_line_tax',
+//              ) ) ) ) continue;
 
               // Handle serialised fields
               if ( is_serialized( $meta['meta_value'] ) ) {
@@ -285,7 +288,7 @@ function jawYandexMoneyInit(){
     }
 
     /**
-     * Generate payment button link
+     * Generate payment button form
      *
      * @access public
      * @param $order_id
@@ -336,6 +339,7 @@ function jawYandexMoneyInit(){
       return $form;
 
     }
+
     /**
      * Process the payment and return the result
      **/
