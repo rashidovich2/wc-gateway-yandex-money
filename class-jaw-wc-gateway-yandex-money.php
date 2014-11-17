@@ -1,21 +1,13 @@
 <?php
 /**
- * Plugin Name: JAW Yandex.Money Gateway for WooCommerce
- * Plugin URI: https://joyatwork.ru
- * Description: Yandex.Money Gateway plugin for WooCommerce
- * Version: 2.0.3
+ * Description: Class definition for Yandex.Money Gateway plugin for WooCommerce
  * Author: pshentsoff
  * Author URI: http://pshentsoff.ru/
- * Requires at least: 4.0
- * Tested up to: 4.0
- *
- * Text Domain: jaw_yandex_money
- * Domain Path: /languages/
  *
  * License: GPL version 3 or later - http://www.gnu.org/licenses/gpl-3.0.html
  *
  * @package JAW-WC-Gateway-Yandex-Money
- * @category Add-on
+ * @category Class definition
  * @author pshentsoff
  */
 
@@ -45,7 +37,7 @@ function jawYandexMoneyInit(){
       $this -> title = $this -> settings['title'];
       $this -> description = $this -> settings['description'];
       $this -> scid = $this -> settings['scid'];
-      $this -> shopId = $this -> settings['ShopID'];
+      $this -> shopId = $this -> settings['shopID'];
       $this -> demomode = $this -> settings['demomode'];
       $this->debug = $this->settings['debug'];
 
@@ -97,23 +89,28 @@ function jawYandexMoneyInit(){
           'title' => __('Заголовок','jaw_yandex_money'),
           'type'=> 'text',
           'description' => __('Название, которое пользователь видит во время оплаты','jaw_yandex_money'),
-          'default' => __('Яндекс.Деньги','jaw_yandex_money')),
+          'default' => __('Яндекс.Деньги','jaw_yandex_money'),
+        ),
 
         'description' => array(
           'title' => __('Описание','jaw_yandex_money'),
           'type' => 'textarea',
           'description' => __('Описание, которое пользователь видит во время оплаты','jaw_yandex_money'),
-          'default' => __('Оплата через систему Яндекс.Деньги','jaw_yandex_money')),
+          'default' => __('Оплата через систему Яндекс.Деньги','jaw_yandex_money'),
+        ),
+
+        'shopId' => array(
+          'title' => 'shopId',
+          'type' => 'text',
+          'description' => __('Идентификатор Контрагента, выдается Оператором.','jaw_yandex_money'),
+        ),
 
         'scid' => array(
-          'title' => 'Scid',
+          'title' => 'scid',
           'type' => 'text',
-          'description' => __('Номер витрины магазина ЦПП','jaw_yandex_money')),
+          'description' => __('Номер витрины Контрагента, выдается Оператором.','jaw_yandex_money'),
+        ),
 
-        'ShopID' => array(
-          'title' => 'ShopID',
-          'type' => 'text',
-          'description' => __('Номер магазина ЦПП','jaw_yandex_money') )
       );
     }
 
@@ -121,7 +118,7 @@ function jawYandexMoneyInit(){
       echo '<h3>'.__('Оплата Яндекс.Деньги','jaw_yandex_money').'</h3>';
       echo '<h5>'.__('Для подключения системы Яндекс.Деньги нужно одобрить заявку на подключение ','jaw_yandex_money');
       echo '<a href="https://money.yandex.ru/shoprequest/">https://money.yandex.ru/shoprequest</a>';
-      echo __(' После этого Вы получите и ShopID, и Scid','jaw_yandex_money').'</h5>';
+      echo __(' После этого Вы получите свой Идентификатор Контрагента shopId и Номер витрины Контрагента scid','jaw_yandex_money').'</h5>';
       echo '<table class="form-table">';
       // Generate the HTML For the settings form.
       $this -> generate_settings_html();
