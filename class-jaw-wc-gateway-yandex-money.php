@@ -161,20 +161,15 @@ function jawYandexMoneyInit(){
     }
 
     /**
-     *  There are no payment fields for payu, but we want to show the description if set.
-     **/
-    function payment_fields(){
-      if($this -> description) echo wpautop(wptexturize($this -> description));
-    }
-
-    /**
-     * Receipt Page
+     * Output for the order received page.
      *
      * @access public
-     * @param $order_id
+     * @return void
      */
     public function receipt_page($order_id){
-      //echo '<p>Thank you for your order, please click the button below to pay with PayU</p>';
+
+      echo '<p>'.__( 'Thank you for your order, please click the button below to pay with Yandex.Money.', 'jaw_yandex_money' ).'</p>';
+
       echo $this -> generate_payment_form($order_id);
     }
 
@@ -290,7 +285,7 @@ function jawYandexMoneyInit(){
     }
 
     /**
-     * Generate payment form
+     * Generate payment button link
      *
      * @access public
      * @param $order_id
@@ -306,11 +301,37 @@ function jawYandexMoneyInit(){
 
       $yandexArguments = $this->get_form_arguments($order);
 
-      $form = '<form name="ShopForm" method="POST" id="submit_JAW_Yandex_Money_Gateway_Form" action="'.$yandexMoneyURL.'">';
+      $form = '<form name="ShopForm" method="post" id="jaw_yandex_money_gateway_form" action="'.esc_url($yandexMoneyURL).'" target="_top">';
       foreach ($yandexArguments as $name => $value) {
-        $form .= '<input type="hidden" name="'.$name.'" value="'.$value.'" />';
+        $form .= '<input type="hidden" name="'.esc_attr($name).'" value="'.esc_attr($value).'" />';
       }
+      $form .= '<input type="submit" class="button alt" id="submit_jaw_yandex_money_payment_form" value="' . esc_attr(__( 'Pay via Yandex.Money', 'jaw_yandex_money' )) . '" />';
+      //@todo check this url we need or not
+      $form .= '<a class="button cancel" href="'.esc_url( $order->get_cancel_order_url() ).'">'.__( 'Cancel order &amp; restore cart', 'jaw_yandex_money' ).'</a>';
       $form .= '</form>';
+
+      $woocommerce->add_inline_js( '
+			jQuery("body").block({
+					message: "' . esc_js( __( 'Thank you for your order. We are now redirecting you to Yandex.Money to make payment.', 'jaw_yandex_money' ) ) . '",
+					baseZ: 99999,
+					overlayCSS:
+					{
+						background: "#fff",
+						opacity: 0.6
+					},
+					css: {
+				        padding:        "20px",
+				        zindex:         "9999999",
+				        textAlign:      "center",
+				        color:          "#555",
+				        border:         "3px solid #aaa",
+				        backgroundColor:"#fff",
+				        cursor:         "wait",
+				        lineHeight:		"24px",
+				    }
+				});
+			jQuery("#submit_jaw_yandex_money_payment_form").click();
+		' );
 
       return $form;
 
