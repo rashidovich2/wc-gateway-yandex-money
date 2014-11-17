@@ -3,7 +3,7 @@
  * Plugin Name: JAW Yandex.Money Gateway for WooCommerce
  * Plugin URI: https://joyatwork.ru
  * Description: Yandex.Money Gateway plugin for WooCommerce
- * Version: 0.0.7
+ * Version: 0.0.8
  * Author: pshentsoff
  * Author URI: http://pshentsoff.ru/
  * Requires at least: 4.0
@@ -23,57 +23,6 @@
 defined('ABSPATH') or exit;
 
 include_once 'class-jaw-wc-gateway-yandex-money.php';
-
-function jawYandexMoneyGeneralOptions( $settings ) {
-  $updated_settings = array();
-  foreach ( $settings as $section ) {
-    if ( isset( $section['id'] ) && 'general_options' == $section['id'] &&
-       isset( $section['type'] ) && 'sectionend' == $section['type'] ) {
-
-      $updated_settings[] = array(
-        'name'     => __('Яндекс.Деньги shopPassword','jaw_yandex_money'),
-        'id'       => 'ym_shopPassword',
-        'type'     => 'text',
-        'css'      => 'min-width:300px;',
-        'std'      => '',  // WC < 2.0
-        'default'  => '',  // WC >= 2.0
-        'desc'     => __( '<br/>Необходим для корректной работы paymentAvisoURL и checkURL. shopPassword устанавливается при регистрации магазина в системе Яндекс.Деньги', 'jaw_yandex_money' ),
-      );
-
-      $pages = get_pages();
-      $p_arr = array();
-      foreach ( $pages as $page )
-        $p_arr[$page->ID] = $page->post_title;
-
-      $updated_settings[] = array(
-        'name'     => __('Яндекс.Деньги Страница успешной оплаты','jaw_yandex_money'),
-        'id'       => 'ym_success_pay',
-        'type'     => 'select',
-        'options'  => $p_arr,
-        'css'      => 'min-width:300px;',
-        'std'      => '',  // WC < 2.0
-        'default'  => '',  // WC >= 2.0
-        'desc'     => __( 'Страница перехода при успешной оплаты (successURL)', 'jaw_yandex_money' ),
-      );
-
-      $updated_settings[] = array(
-        'name'     => __('Яндекс.Деньги Страница ошибки оплаты','jaw_yandex_money'),
-        'id'       => 'ym_fail_pay',
-        'type'     => 'select',
-        'options'  => $p_arr,
-        'css'      => 'min-width:300px;',
-        'std'      => '',  // WC < 2.0
-        'default'  => '',  // WC >= 2.0
-        'desc'     => __( 'Страница перехода при ошибки оплаты (failURL)', 'jaw_yandex_money' ),
-      );
-
-
-    }
-    $updated_settings[] = $section;
-  }
-  return $updated_settings;
-}
-add_filter( 'woocommerce_general_settings', 'jawYandexMoneyGeneralOptions' );
 
 /**
  * Check Payment function
