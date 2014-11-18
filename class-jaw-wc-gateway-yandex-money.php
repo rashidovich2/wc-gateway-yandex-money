@@ -67,6 +67,7 @@ function jawYandexMoneyInit(){
       $this->init_form_fields();
 
       $this->init_settings();
+      $this->enabled      = $this->settings['enabled'];
       $this->title        = $this->settings['title'];
       $this->description  = $this->settings['description'];
       $this->scid         = $this->settings['scid'];
@@ -78,12 +79,13 @@ function jawYandexMoneyInit(){
 //      if ( 'yes' == $this->debug )
 //        $this->log = $woocommerce->logger();
 
-      if ( version_compare( WOOCOMMERCE_VERSION, '2.0.0', '>=' ) ) {
-        add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( &$this, 'process_admin_options' ) );
+      if ( version_compare( WOOCOMMERCE_VERSION, '2.0', '<' ) ) {
+        add_action('woocommerce_update_options', array(&$this, 'process_admin_options'));
+        add_action('woocommerce_update_options_payment_gateways', array(&$this, 'process_admin_options'));
       } else {
-        add_action( 'woocommerce_update_options_payment_gateways', array( &$this, 'process_admin_options' ) );
+        add_action('woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
       }
-      add_action('woocommerce_receipt_yandex_money', array(&$this, 'receipt_page'));
+      add_action('woocommerce_receipt_'. $this->id, array(&$this, 'receipt_page'));
 
     }
 
@@ -100,7 +102,7 @@ function jawYandexMoneyInit(){
       foreach ( $pages as $page )
         $pagesList[$page->ID] = $page->post_title;
 
-      $this -> form_fields = array(
+      $this->form_fields = array(
 
         'enabled' => array(
           'title' => __('Включить/Выключить','jaw_yandex_money'),
