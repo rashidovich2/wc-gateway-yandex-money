@@ -16,40 +16,67 @@ defined('ABSPATH') or exit;
 
 add_action('plugins_loaded', 'jawYandexMoneyInit', 0);
 function jawYandexMoneyInit(){
+
   if(!class_exists('WC_Payment_Gateway')) return;
 
   class jawYandexMoneyWCPaymentGateway extends WC_Payment_Gateway{
 
+    /**
+     * Live request API URL
+     * @var string
+     */
+    public $liveURL;
+    /**
+     * Request API URL for demo mode
+     * @var string
+     */
+    public $testURL;
+    /**
+     * Client scid (assigned at Yandex.Money service)
+     * @var int
+     */
+    public $scid;
+    /**
+     * Client shop ID (assigned at Yandex.Money service)
+     * @var int
+     */
+    public $shopId;
+    /**
+     * Demo mode switch
+     * @var boolean|string
+     */
+    public $demoMode;
+    /**
+     * Debug mode switch
+     * @var boolean|string
+     */
+    public $debug;
+
     public function __construct(){
 
-      global $woocommerce;
-
-      $this -> id         = 'jaw_yandex_money';
+      $this->id         = 'jaw_yandex_money';
       $this->icon         = apply_filters( 'jaw_yandex_money_icon', jawYandexMoneyGetIconURL() );
-      $this -> method_title  = __('Яндекс.Деньги', 'jaw_yandex_money');
+      $this->method_title  = __('Яндекс.Деньги', 'jaw_yandex_money');
       $this->method_description = __('Для подключения системы Яндекс.Деньги нужно одобрить заявку на подключение ','jaw_yandex_money');
       $this->method_description .= '<a href="https://money.yandex.ru/shoprequest/">https://money.yandex.ru/shoprequest</a>';
       $this->method_description .= __(' После этого Вы получите свой Идентификатор Контрагента shopId и Номер витрины Контрагента scid','jaw_yandex_money');
-      $this -> has_fields = false;
-      $this->liveurl      = 'https://money.yandex.ru/eshop.xml';
-      $this->testurl      = 'https://demomoney.yandex.ru/eshop.xml';
+      $this->has_fields   = true;
+      $this->liveURL      = 'https://money.yandex.ru/eshop.xml';
+      $this->testURL      = 'https://demomoney.yandex.ru/eshop.xml';
 
-      $this -> init_form_fields();
-      $this -> init_settings();
+      $this->init_form_fields();
 
-      $this -> title = $this -> settings['title'];
-      $this -> description = $this -> settings['description'];
-      $this -> scid = $this -> settings['scid'];
-      $this -> shopId = $this -> settings['shopID'];
-      $this -> demomode = $this -> settings['demomode'];
-      $this->debug = $this->settings['debug'];
+      $this->init_settings();
+      $this->title        = $this->settings['title'];
+      $this->description  = $this->settings['description'];
+      $this->scid         = $this->settings['scid'];
+      $this->shopId       = $this->settings['shopID'];
+      $this->demoMode     = $this->settings['demomode'];
+      $this->debug        = $this->settings['debug'];
 
       // Logs
-      if ( 'yes' == $this->debug )
-        $this->log = $woocommerce->logger();
-
-      $this -> msg['message'] = '';
-      $this -> msg['class'] = '';
+//      if ( 'yes' == $this->debug )
+//        $this->log = $woocommerce->logger();
 
       if ( version_compare( WOOCOMMERCE_VERSION, '2.0.0', '>=' ) ) {
         add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( &$this, 'process_admin_options' ) );
@@ -57,6 +84,7 @@ function jawYandexMoneyInit(){
         add_action( 'woocommerce_update_options_payment_gateways', array( &$this, 'process_admin_options' ) );
       }
       add_action('woocommerce_receipt_yandex_money', array(&$this, 'receipt_page'));
+
     }
 
     /**
@@ -78,13 +106,15 @@ function jawYandexMoneyInit(){
           'title' => __('Включить/Выключить','jaw_yandex_money'),
           'type' => 'checkbox',
           'label' => __('Включить модуль оплаты Яндекс.Деньги','jaw_yandex_money'),
-          'default' => 'no'),
+          'default' => 'no'
+        ),
 
         'demomode' => array (
           'title' => __('Включить/Выключить','jaw_yandex_money'),
           'type' => 'checkbox',
           'label' => __('Включить тестовый режим','jaw_yandex_money'),
-          'default' => 'no'),
+          'default' => 'no'
+        ),
 
         'debug' => array(
           'title' => __('Включить/Выключить','jaw_yandex_money'),
@@ -250,8 +280,8 @@ function jawYandexMoneyInit(){
         'customerNumber' =>  'Order ' . ltrim($order->get_order_number(), '#'), //Идентификатор плательщика в ИС Контрагента. В качестве идентификатора может использоваться номер договора плательщика, логин плательщика и т. п. Возможна повторная оплата по одному и тому же идентификатору плательщика.
         'orderNumber' =>  $order->id, // Уникальный номер заказа в ИС Контрагента. Уникальность контролируется Оператором в сочетании с параметром shopId. Если платеж с таким номер заказа уже был успешно проведен, то повторные попытки оплаты будут отвергнуты Оператором.
         //@todo shop urls
-        'shopSuccessURL' => $this->result_saph_ymoney_url . '&order=' . $order->id, // URL, на который нужно отправить плательщика в случае успеха перевода. Используется при выборе соответствующей опции подключения Контрагента (см. раздел 6.1 «Параметры подключения Контрагента»).
-        'shopFailURL' => $this->yandexfailUrl . '&order=' . $order->id, // URL, на который нужно отправить плательщика в случае ошибки оплаты. Используется при выборе соответствующей опции подключения Контрагента.
+//        'shopSuccessURL' => $this->result_saph_ymoney_url . '&order=' . $order->id, // URL, на который нужно отправить плательщика в случае успеха перевода. Используется при выборе соответствующей опции подключения Контрагента (см. раздел 6.1 «Параметры подключения Контрагента»).
+//        'shopFailURL' => $this->yandexfailUrl . '&order=' . $order->id, // URL, на который нужно отправить плательщика в случае ошибки оплаты. Используется при выборе соответствующей опции подключения Контрагента.
         'cps_email' =>  $order->billing_email, // Адрес электронной почты плательщика. Если он передан, то соответствующее поле на странице подтверждения платежа будет предзаполнено (шаг 3 на схеме выше).
         'cps_phone' =>  $order->billing_phone, // Номер мобильного телефона плательщика. Если он передан, то соответствующее поле на странице подтверждения платежа будет предзаполнено (шаг 3 на схеме выше). Номер телефона используется при оплате наличными через терминалы.
         'paymentType' => array(
@@ -286,9 +316,9 @@ function jawYandexMoneyInit(){
 
       global $woocommerce;
 
-      if ('yes' == $this->debug) $this->log->add( 'jaw_yandex_money', __('Создание платежной формы для заказа #').$order_id.'.');
+//      if ('yes' == $this->debug) $this->log->add( 'jaw_yandex_money', __('Создание платежной формы для заказа #').$order_id.'.');
       $order = class_exists('WC_Order') ? new WC_Order( $order_id ) : new woocommerce_order( $order_id );
-      $yandexMoneyURL = ('yes' == $this->demomode) ? $this->testurl : $this->liveurl;
+      $yandexMoneyURL = ('yes' == $this->demoMode) ? $this->testURL : $this->liveURL;
 
       $yandexArguments = $this->get_form_arguments($order);
 
@@ -342,30 +372,10 @@ function jawYandexMoneyInit(){
     }
 
 
-    function showMessage($content){
-      return '<div class="box '.$this -> msg['class'].'-box">'.$this -> msg['message'].'</div>'.$content;
-    }
-    // get all pages
-    function get_pages($title = false, $indent = true) {
-      $wp_pages = get_pages('sort_column=menu_order');
-      $page_list = array();
-      if ($title) $page_list[] = $title;
-      foreach ($wp_pages as $page) {
-        $prefix = '';
-        // show indented child pages?
-        if ($indent) {
-          $has_parent = $page->post_parent;
-          while($has_parent) {
-            $prefix .=  ' - ';
-            $next_page = get_page($has_parent);
-            $has_parent = $next_page->post_parent;
-          }
-        }
-        // add to page list array array
-        $page_list[$page->ID] = $prefix . $page->post_title;
-      }
-      return $page_list;
-    }
+//    function showMessage($content){
+//      return '<div class="box '.$this -> msg['class'].'-box">'.$this -> msg['message'].'</div>'.$content;
+//    }
+
   }
   /**
    * Add the Gateway to WooCommerce
