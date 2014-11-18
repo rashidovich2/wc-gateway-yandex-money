@@ -4,7 +4,7 @@ Joy@Work Team Yandex.Money Gateway plugin for WooCommerce (Wordpress).
 
 -   Contributors: pshentsoff
 -   Tags: Yandex.Money, woocommerce, WC, wordpress, WP, plugin
--   Version: 0.0.11
+-   Version: 0.0.12
 -   Requires at least:
 -   Tested up to: 4.0
 -   Stable tag:
@@ -15,7 +15,7 @@ Joy@Work Team Yandex.Money Gateway plugin for WooCommerce (Wordpress).
 
 ### Useful links:
 
-#### Version 0.0.11
+#### Version 0.0.12
 #### Last work version
 #### Last stable version
 

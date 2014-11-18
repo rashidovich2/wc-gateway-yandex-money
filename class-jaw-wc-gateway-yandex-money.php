@@ -27,6 +27,9 @@ function jawYandexMoneyInit(){
       $this -> id         = 'jaw_yandex_money';
       $this->icon         = apply_filters( 'jaw_yandex_money_icon', jawYandexMoneyGetIconURL() );
       $this -> method_title  = __('Яндекс.Деньги', 'jaw_yandex_money');
+      $this->method_description = __('Для подключения системы Яндекс.Деньги нужно одобрить заявку на подключение ','jaw_yandex_money');
+      $this->method_description .= '<a href="https://money.yandex.ru/shoprequest/">https://money.yandex.ru/shoprequest</a>';
+      $this->method_description .= __(' После этого Вы получите свой Идентификатор Контрагента shopId и Номер витрины Контрагента scid','jaw_yandex_money');
       $this -> has_fields = false;
       $this->liveurl      = 'https://money.yandex.ru/eshop.xml';
       $this->testurl      = 'https://demomoney.yandex.ru/eshop.xml';
@@ -149,21 +152,6 @@ function jawYandexMoneyInit(){
     }
 
     /**
-     * Admin Panel options
-     */
-    public function admin_options(){
-      echo '<h3>'.__('Оплата Яндекс.Деньги','jaw_yandex_money').'</h3>';
-      echo '<h5>'.__('Для подключения системы Яндекс.Деньги нужно одобрить заявку на подключение ','jaw_yandex_money');
-      echo '<a href="https://money.yandex.ru/shoprequest/">https://money.yandex.ru/shoprequest</a>';
-      echo __(' После этого Вы получите свой Идентификатор Контрагента shopId и Номер витрины Контрагента scid','jaw_yandex_money').'</h5>';
-      echo '<table class="form-table">';
-      // Generate the HTML For the settings form.
-      $this -> generate_settings_html();
-      echo '</table>';
-
-    }
-
-    /**
      * Output for the order received page.
      *
      * @access public
@@ -190,66 +178,66 @@ function jawYandexMoneyInit(){
       $order_items = $order->get_items( apply_filters( 'woocommerce_admin_order_item_types', array( 'line_item', 'fee' ) ) );
       $count  = 0 ;
       $description_ = $orderDetails = '';
-      foreach($order_items as $item_id => $item) {
-        $description_ .= esc_attr( $item['name'] );
-        $v = explode('.', WOOCOMMERCE_VERSION);
-        if($v[0] >= 2) {
-          if ( $metadata = $order->has_meta( $item_id )) {
-            $_description = '';
-            $is_ = false;
-            $is_count = 0;
-            foreach ( $metadata as $meta ) {
-
-//              // Skip hidden core fields
-//              if ( in_array( $meta['meta_key'], apply_filters( 'woocommerce_hidden_order_itemmeta', array(
-//                '_qty',
-//                '_tax_class',
-//                '_product_id',
-//                '_variation_id',
-//                '_line_subtotal',
-//                '_line_subtotal_tax',
-//                '_line_total',
-//                '_line_tax',
-//              ) ) ) ) continue;
-
-              // Handle serialised fields
-              if ( is_serialized( $meta['meta_value'] ) ) {
-                if ( is_serialized_string( $meta['meta_value'] ) ) {
-                  // this is a serialized string, so we should display it
-                  $meta['meta_value'] = maybe_unserialize( $meta['meta_value'] );
-                } else {
-                  continue;
-                }
-              }
-              $is_ = true;
-              if($is_count == 0)
-                $_description .= esc_attr(' ['.$meta['meta_key'] . ': ' . $meta['meta_value'] );
-              else
-                $_description .= esc_attr(', '.$meta['meta_key'] . ': ' . $meta['meta_value'] );
-              $is_count++;
-            }
-            if($is_count > 0)
-              $_description = $_description. '] - '.$item['qty']. '';
-            else $_description = $_description. ' - '.$item['qty']. '';
-          }
-          if(($count + 1) != count($order_items) && !empty($description_)) $orderDetails .=  $description_.$_description . ', '; else $orderDetails .=  ''.$description_.$_description;
-          $count++;
-          $description_ = $_description = '';
-        }else {
-          if ( $metadata = $item["item_meta"]) {
-            $_description = '';
-            foreach($metadata as $k =>  $meta) {
-              if($k == 0)
-                $_description .= esc_attr(' - '.$meta['meta_name'] . ': ' . $meta['meta_value'] . '');
-              else {
-                $_description .= esc_attr('; '.$meta['meta_name'] . ': ' . $meta['meta_value'] . '');
-              }
-            }
-          }
-          if($item_id == 0)$orderDetails = esc_attr( $item['name'] ) . $_description .' ('.$item["qty"].')'; else
-            $orderDetails .= ', '. esc_attr( $item['name'] ) . $_description .' ('.$item["qty"].')';
-        }
-      }
+//      foreach($order_items as $item_id => $item) {
+//        $description_ .= esc_attr( $item['name'] );
+//        $v = explode('.', WOOCOMMERCE_VERSION);
+//        if($v[0] >= 2) {
+//          if ( $metadata = $order->has_meta( $item_id )) {
+//            $_description = '';
+//            $is_ = false;
+//            $is_count = 0;
+//            foreach ( $metadata as $meta ) {
+//
+////              // Skip hidden core fields
+////              if ( in_array( $meta['meta_key'], apply_filters( 'woocommerce_hidden_order_itemmeta', array(
+////                '_qty',
+////                '_tax_class',
+////                '_product_id',
+////                '_variation_id',
+////                '_line_subtotal',
+////                '_line_subtotal_tax',
+////                '_line_total',
+////                '_line_tax',
+////              ) ) ) ) continue;
+//
+//              // Handle serialised fields
+//              if ( is_serialized( $meta['meta_value'] ) ) {
+//                if ( is_serialized_string( $meta['meta_value'] ) ) {
+//                  // this is a serialized string, so we should display it
+//                  $meta['meta_value'] = maybe_unserialize( $meta['meta_value'] );
+//                } else {
+//                  continue;
+//                }
+//              }
+//              $is_ = true;
+//              if($is_count == 0)
+//                $_description .= esc_attr(' ['.$meta['meta_key'] . ': ' . $meta['meta_value'] );
+//              else
+//                $_description .= esc_attr(', '.$meta['meta_key'] . ': ' . $meta['meta_value'] );
+//              $is_count++;
+//            }
+//            if($is_count > 0)
+//              $_description = $_description. '] - '.$item['qty']. '';
+//            else $_description = $_description. ' - '.$item['qty']. '';
+//          }
+//          if(($count + 1) != count($order_items) && !empty($description_)) $orderDetails .=  $description_.$_description . ', '; else $orderDetails .=  ''.$description_.$_description;
+//          $count++;
+//          $description_ = $_description = '';
+//        }else {
+//          if ( $metadata = $item["item_meta"]) {
+//            $_description = '';
+//            foreach($metadata as $k =>  $meta) {
+//              if($k == 0)
+//                $_description .= esc_attr(' - '.$meta['meta_name'] . ': ' . $meta['meta_value'] . '');
+//              else {
+//                $_description .= esc_attr('; '.$meta['meta_name'] . ': ' . $meta['meta_value'] . '');
+//              }
+//            }
+//          }
+//          if($item_id == 0)$orderDetails = esc_attr( $item['name'] ) . $_description .' ('.$item["qty"].')'; else
+//            $orderDetails .= ', '. esc_attr( $item['name'] ) . $_description .' ('.$item["qty"].')';
+//        }
+//      }
 
       if(!empty($this->currency)) $kurs = str_replace(',', '.', $this->currency); else $kurs = 1;
       $order->billing_phone = str_replace(array('+', '-', ' ', '(', ')', '.'), array('', '', '', '', '', ''), $order->billing_phone);
