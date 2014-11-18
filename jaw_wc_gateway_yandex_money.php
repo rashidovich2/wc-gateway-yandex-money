@@ -3,7 +3,7 @@
  * Plugin Name: JAW Yandex.Money Gateway for WooCommerce
  * Plugin URI: http://joyatwork.ru
  * Description: Yandex.Money Gateway plugin for WooCommerce from <a href="http://joyatwork.ru" target="_blank">Joy@Work</a>
- * Version: 0.1.2
+ * Version: 0.1.3
  * Author: pshentsoff
  * Author URI: http://pshentsoff.ru/
  * Requires at least: 4.0
@@ -69,7 +69,7 @@ class jawWCYandexMoney {
    * @return string
    */
   function getIconURL() {
-    return jawWCYandexMoney::$plugin_path.'assets/images/icon.png';
+    return jawWCYandexMoney::$plugin_url.'assets/images/icon.png';
   }
 
   /**

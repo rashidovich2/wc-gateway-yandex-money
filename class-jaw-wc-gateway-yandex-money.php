@@ -51,9 +51,9 @@ class jaw_yandex_money extends WC_Payment_Gateway {
 
     $this->id         = 'jaw_yandex_money';
     $this->method_title  = __('Яндекс.Деньги', 'jaw_yandex_money');
-    $this->method_description = __('Для подключения системы Яндекс.Деньги нужно одобрить заявку на подключение ','jaw_yandex_money');
-    $this->method_description .= '<a href="https://money.yandex.ru/shoprequest/">https://money.yandex.ru/shoprequest</a>';
-    $this->method_description .= __(' После этого Вы получите свой Идентификатор Контрагента shopId и Номер витрины Контрагента scid','jaw_yandex_money');
+    $this->method_description = __('Для подключения системы Яндекс.Деньги нужно получить одобрение заявки на подключение ','jaw_yandex_money');
+    $this->method_description .= '<a href="https://money.yandex.ru/shoprequest/">https://money.yandex.ru/shoprequest</a><br/>';
+    $this->method_description .= __('После этого Вы получите свой Идентификатор Контрагента <strong>shopId</strong> и Номер витрины Контрагента <strong>scid</strong> которые Вам будет необходимо указат в полях ниже.','jaw_yandex_money');
     $this->has_fields   = true;
     $this->liveURL      = 'https://money.yandex.ru/eshop.xml';
     $this->testURL      = 'https://demomoney.yandex.ru/eshop.xml';
@@ -92,30 +92,33 @@ class jaw_yandex_money extends WC_Payment_Gateway {
   function init_form_fields(){
 
     $pages = get_pages();
-    $pagesList = array();
+    $pagesList = array(
+      0 => __('Выберите из списка', 'jaw_yandex_money'),
+    );
+
     foreach ( $pages as $page )
       $pagesList[$page->ID] = $page->post_title;
 
     $this->form_fields = array(
 
       'enabled' => array(
-        'title' => __('Включить/Выключить','jaw_yandex_money'),
         'type' => 'checkbox',
-        'label' => __('Включить модуль оплаты Яндекс.Деньги','jaw_yandex_money'),
-        'default' => 'no'
+        'title' => __('Включить модуль оплаты Яндекс.Деньги','jaw_yandex_money'),
+        'label' => '',
+        'default' => 'no',
       ),
 
       'demomode' => array (
-        'title' => __('Включить/Выключить','jaw_yandex_money'),
         'type' => 'checkbox',
-        'label' => __('Включить тестовый режим','jaw_yandex_money'),
-        'default' => 'no'
+        'title' => __('Включить тестовый режим','jaw_yandex_money'),
+        'label' => '',
+        'default' => 'no',
       ),
 
       'debug' => array(
-        'title' => __('Включить/Выключить','jaw_yandex_money'),
         'type' => 'checkbox',
-        'label' => __('Включить отладочный режим','jaw_yandex_money'),
+        'title' => __('Включить отладочный режим','jaw_yandex_money'),
+        'label' => '',
         'default' => 'no',
       ),
 
@@ -129,49 +132,51 @@ class jaw_yandex_money extends WC_Payment_Gateway {
       'description' => array(
         'title' => __('Описание','jaw_yandex_money'),
         'type' => 'textarea',
+        'css' => 'max-width:500px;',
         'description' => __('Описание, которое пользователь видит во время оплаты','jaw_yandex_money'),
         'default' => __('Оплата через систему Яндекс.Деньги','jaw_yandex_money'),
       ),
 
       'shopPassword' => array(
-        'name'     => __('Яндекс.Деньги shopPassword','jaw_yandex_money'),
-        'type'     => 'text',
-        'css'      => 'min-width:300px;',
-        'std'      => '',  // WC < 2.0
-        'default'  => '',  // WC >= 2.0
-        'desc'     => __( '<br/>Необходим для корректной работы paymentAvisoURL и checkURL. shopPassword устанавливается при регистрации магазина в системе Яндекс.Деньги', 'jaw_yandex_money' ),
+        'title' => __('Яндекс.Деньги shopPassword','jaw_yandex_money'),
+        'type' => 'text',
+        'std' => '',
+        'default' => '',
+        'description' => __( '<br/>Необходим для корректной работы paymentAvisoURL и checkURL. shopPassword устанавливается при регистрации магазина в системе Яндекс.Деньги', 'jaw_yandex_money' ),
       ),
 
       'shopId' => array(
-        'title' => 'shopId',
+        'title' => __('Идентификатор контрагента shopId', 'jaw_yandex_money'),
         'type' => 'text',
-        'description' => __('Идентификатор Контрагента, выдается Оператором.','jaw_yandex_money'),
+        'css' => 'width: 100px;',
+        'description' => __('Идентификатор контрагента, выдается Оператором.','jaw_yandex_money'),
       ),
 
       'scid' => array(
-        'title' => 'scid',
+        'title' => __('Номер витрины контрагента scid', 'jaw_yandex_map'),
         'type' => 'text',
-        'description' => __('Номер витрины Контрагента, выдается Оператором.','jaw_yandex_money'),
+        'css' => 'width: 100px;',
+        'description' => __('Номер витрины контрагента, выдается Оператором.','jaw_yandex_money'),
       ),
 
       'shopSuccessURL' => array(
-        'name'     => __('Яндекс.Деньги Страница успешной оплаты','jaw_yandex_money'),
-        'type'     => 'select',
-        'options'  => $pagesList,
-        'css'      => 'min-width:300px;',
-        'std'      => '',  // WC < 2.0
-        'default'  => '',  // WC >= 2.0
-        'desc'     => __( 'Страница перехода при успешной оплаты (successURL)', 'jaw_yandex_money' ),
+        'title' => __('Страница успешной оплаты','jaw_yandex_money'),
+        'type' => 'select',
+        'options' => $pagesList,
+        'css' => 'min-width:200px;',
+        'std' => '',
+        'default' => '',
+        'description' => __( 'Страница перехода при успешной оплате (successURL Вашей заполненной анкеты)', 'jaw_yandex_money' ),
       ),
 
       'shopFailURL' => array(
-        'name'     => __('Яндекс.Деньги Страница ошибки оплаты','jaw_yandex_money'),
-        'type'     => 'select',
-        'options'  => $pagesList,
-        'css'      => 'min-width:300px;',
-        'std'      => '',  // WC < 2.0
-        'default'  => '',  // WC >= 2.0
-        'desc'     => __( 'Страница перехода при ошибки оплаты (failURL)', 'jaw_yandex_money' ),
+        'title' => __('Страница ошибки оплаты','jaw_yandex_money'),
+        'type' => 'select',
+        'options' => $pagesList,
+        'css' => 'min-width:200px;',
+        'std' => '',
+        'default' => '',
+        'description' => __( 'Страница перехода при ошибке оплаты (failURL Вашей заполненной анкеты)', 'jaw_yandex_money' ),
       ),
 
     );
