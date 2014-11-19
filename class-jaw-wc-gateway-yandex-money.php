@@ -16,6 +16,8 @@ defined('ABSPATH') or exit;
 
 class jaw_yandex_money extends WC_Payment_Gateway {
 
+  static $sub_query;
+
   /**
    * Live request API URL
    * @var string
@@ -46,10 +48,21 @@ class jaw_yandex_money extends WC_Payment_Gateway {
    * @var boolean|string
    */
   public $debug;
+  /**
+   * URL при удачной оплате
+   * @var string
+   */
+  public $callbackSuccessURL;
+  /**
+   * URL при неудачной оплате
+   * @var string
+   */
+  public $callbackFailURL;
 
   public function __construct(){
 
     $this->id         = 'jaw_yandex_money';
+    static::$sub_query = 'gateway='.$this->id;
     $this->method_title  = __('Яндекс.Деньги', 'jaw_yandex_money');
     $this->method_description = __('Для подключения системы Яндекс.Деньги нужно получить одобрение заявки на подключение ','jaw_yandex_money');
     $this->method_description .= '<a href="https://money.yandex.ru/shoprequest/">https://money.yandex.ru/shoprequest</a><br/>';
@@ -69,18 +82,46 @@ class jaw_yandex_money extends WC_Payment_Gateway {
     $this->demoMode     = $this->settings['demomode'];
     $this->debug        = $this->settings['debug'];
 
+    // callback URLs
+    $this->callbackSuccessURL = get_permalink($this->settings['shopSuccessURL']);
+    if(false === $this->callbackSuccessURL) $this->callbackSuccessURL = site_url('/');
+    if(substr_count($this->callbackSuccessURL,'?page_id=')) $this->callbackSuccessURL .= '&'; else $this->callbackSuccessURL .= '?';
+    $this->callbackSuccessURL .= static::$sub_query.'&success=1';
+
+    $this->callbackFailURL = get_permalink($this->settings['shopFailURL']);
+    if(false === $this->callbackFailURL) $this->callbackFailURL = site_url('/');
+    if(substr_count($this->callbackFailURL,'?page_id=')) $this->callbackFailURL .= '&'; else $this->callbackFailURL .= '?';
+    $this->callbackFailURL .= static::$sub_query.'&fail=1';
+
+    var_dump($this->callbackSuccessURL);
+    var_dump($this->callbackFailURL);
+
     // Logs
 //      if ( 'yes' == $this->debug )
 //        $this->log = $woocommerce->logger();
 
-    if ( version_compare( WOOCOMMERCE_VERSION, '2.0', '<' ) ) {
+    if (version_compare(WOOCOMMERCE_VERSION, '2.0', '<')) {
       add_action('woocommerce_update_options', array(&$this, 'process_admin_options'));
       add_action('woocommerce_update_options_payment_gateways', array(&$this, 'process_admin_options'));
+      add_action('init', array(&$this, 'check_callback'));
     } else {
-      add_action('woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
+      add_action('woocommerce_update_options_payment_gateways_'.$this->id, array($this, 'process_admin_options'));
+      add_action('woocommerce_api_'.strtolower(get_class($this)), array($this, 'check_callback'));
     }
     add_action('woocommerce_receipt_'. $this->id, array(&$this, 'receipt_page'));
 
+  }
+
+  /**
+   * Check callback URL
+   */
+  function check_callback() {
+
+    if(isset($_REQUEST['gateway']) && $_REQUEST['gateway'] == $this->id) {
+      if(isset($_REQUEST['key']) && isset($_REQUEST['order'])) {
+        var_dump('Yes! It is mine!!!');
+      }
+    }
   }
 
   /**
@@ -280,9 +321,8 @@ class jaw_yandex_money extends WC_Payment_Gateway {
       'sum' => number_format($order->order_total*$kurs, 2, '.', ''), // Стоимость заказа.
       'customerNumber' =>  'Order ' . ltrim($order->get_order_number(), '#'), //Идентификатор плательщика в ИС Контрагента. В качестве идентификатора может использоваться номер договора плательщика, логин плательщика и т. п. Возможна повторная оплата по одному и тому же идентификатору плательщика.
       'orderNumber' =>  $order->id, // Уникальный номер заказа в ИС Контрагента. Уникальность контролируется Оператором в сочетании с параметром shopId. Если платеж с таким номер заказа уже был успешно проведен, то повторные попытки оплаты будут отвергнуты Оператором.
-      //@todo shop urls
-//        'shopSuccessURL' => $this->result_saph_ymoney_url . '&order=' . $order->id, // URL, на который нужно отправить плательщика в случае успеха перевода. Используется при выборе соответствующей опции подключения Контрагента (см. раздел 6.1 «Параметры подключения Контрагента»).
-//        'shopFailURL' => $this->yandexfailUrl . '&order=' . $order->id, // URL, на который нужно отправить плательщика в случае ошибки оплаты. Используется при выборе соответствующей опции подключения Контрагента.
+      'shopSuccessURL' => $this->callbackSuccessURL . '&order=' . $order->id, // URL, на который нужно отправить плательщика в случае успеха перевода. Используется при выборе соответствующей опции подключения Контрагента (см. раздел 6.1 «Параметры подключения Контрагента»).
+      'shopFailURL' => $this->callbackFailURL . '&order=' . $order->id, // URL, на который нужно отправить плательщика в случае ошибки оплаты. Используется при выборе соответствующей опции подключения Контрагента.
       'cps_email' =>  $order->billing_email, // Адрес электронной почты плательщика. Если он передан, то соответствующее поле на странице подтверждения платежа будет предзаполнено (шаг 3 на схеме выше).
       'cps_phone' =>  $order->billing_phone, // Номер мобильного телефона плательщика. Если он передан, то соответствующее поле на странице подтверждения платежа будет предзаполнено (шаг 3 на схеме выше). Номер телефона используется при оплате наличными через терминалы.
       'paymentType' => array(
