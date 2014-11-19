@@ -61,8 +61,10 @@ class jaw_yandex_money extends WC_Payment_Gateway {
 
   public function __construct(){
 
+    global $woocommerce;
+
     $this->id         = 'jaw_yandex_money';
-    static::$sub_query = 'gateway='.$this->id;
+    static::$sub_query = 'wc-api='.$this->id;
     $this->method_title  = __('Яндекс.Деньги', 'jaw_yandex_money');
     $this->method_description = __('Для подключения системы Яндекс.Деньги нужно получить одобрение заявки на подключение ','jaw_yandex_money');
     $this->method_description .= '<a href="https://money.yandex.ru/shoprequest/">https://money.yandex.ru/shoprequest</a><br/>';
@@ -82,6 +84,9 @@ class jaw_yandex_money extends WC_Payment_Gateway {
     $this->demoMode     = $this->settings['demomode'];
     $this->debug        = $this->settings['debug'];
 
+    // Logs
+    $this->log = ('yes' == $this->debug) ? $woocommerce->logger() : false;
+
     // callback URLs
     $this->callbackSuccessURL = get_permalink($this->settings['shopSuccessURL']);
     if(false === $this->callbackSuccessURL) $this->callbackSuccessURL = site_url('/');
@@ -93,21 +98,21 @@ class jaw_yandex_money extends WC_Payment_Gateway {
     if(substr_count($this->callbackFailURL,'?page_id=')) $this->callbackFailURL .= '&'; else $this->callbackFailURL .= '?';
     $this->callbackFailURL .= static::$sub_query.'&fail=1';
 
-    var_dump($this->callbackSuccessURL);
-    var_dump($this->callbackFailURL);
+    if($this->log) {
+      $this->log->add($this->id, 'Success URL = '.$this->callbackSuccessURL);
+      $this->log->add($this->id, 'Fail URL = '.$this->callbackFailURL);
+    }
 
-    // Logs
-//      if ( 'yes' == $this->debug )
-//        $this->log = $woocommerce->logger();
-
+    // Hooks
     if (version_compare(WOOCOMMERCE_VERSION, '2.0', '<')) {
       add_action('woocommerce_update_options', array(&$this, 'process_admin_options'));
       add_action('woocommerce_update_options_payment_gateways', array(&$this, 'process_admin_options'));
       add_action('init', array(&$this, 'check_callback'));
     } else {
       add_action('woocommerce_update_options_payment_gateways_'.$this->id, array($this, 'process_admin_options'));
-      add_action('woocommerce_api_'.strtolower(get_class($this)), array($this, 'check_callback'));
+      add_action('woocommerce_api_'.$this->id, array($this, 'check_callback'));
     }
+    add_action( 'woocommerce_api_wc_gateway_'.$this->id, array($this, 'check_callback'));
     add_action('woocommerce_receipt_'. $this->id, array(&$this, 'receipt_page'));
 
   }
@@ -117,9 +122,33 @@ class jaw_yandex_money extends WC_Payment_Gateway {
    */
   function check_callback() {
 
-    if(isset($_REQUEST['gateway']) && $_REQUEST['gateway'] == $this->id) {
-      if(isset($_REQUEST['key']) && isset($_REQUEST['order'])) {
-        var_dump('Yes! It is mine!!!');
+    if($this->log) $this->log->add($this->id, 'Check callback $_REQUEST = '.print_r($_REQUEST, true));
+
+    if(isset($_REQUEST['wc-api']) && $_REQUEST['wc-api'] == $this->id) {
+      if(!empty($_REQUEST['order']) || !empty($_REQUEST['orderNumber'])) {
+        $_REQUEST['order'] = isset($_REQUEST['order']) ? $_REQUEST['order']: $_REQUEST['orderNumber'];
+        $order = (!class_exists('WC_Order')) ? new woocommerce_order( $_REQUEST['order'] ) : new WC_Order( $_REQUEST['order'] );
+        if(!version_compare( WOOCOMMERCE_VERSION, '2.1.0', '<')) {
+          wp_redirect( $this->get_return_url( $order ) );
+          exit;
+        }
+        $downloadable_order = false;
+        if(sizeof($order->get_items()) > 0) {
+          foreach($order->get_items() as $item) {
+            if ($item['id'] > 0) {
+              $_product = $order->get_product_from_item($item);
+              if ($_product->is_downloadable()) {
+                $downloadable_order = true;
+                continue;
+              }
+            }
+            $downloadable_order = false;
+            break;
+          }
+        }
+        $page_redirect = $downloadable_order ? 'woocommerce_view_order_page_id' : 'woocommerce_thanks_page_id';
+        wp_redirect(add_query_arg('key', $order->order_key, add_query_arg('order', $_REQUEST['order'], get_permalink(get_option($page_redirect)))));
+        exit;
       }
     }
   }
@@ -342,6 +371,8 @@ class jaw_yandex_money extends WC_Payment_Gateway {
       'cms_name' => 'wordpress_woocommerce',
     );
 
+    if($this->log) $this->log->add($this->id, '$yandex_money_args dump = '.print_r($yandex_money_args, true));
+
     $yandex_money_args = apply_filters( 'woocommerce_yandex_money_args', $yandex_money_args );
     return $yandex_money_args;
   }
@@ -357,7 +388,7 @@ class jaw_yandex_money extends WC_Payment_Gateway {
 
     global $woocommerce;
 
-//      if ('yes' == $this->debug) $this->log->add( 'jaw_yandex_money', __('Создание платежной формы для заказа #').$order_id.'.');
+    if ('yes' == $this->debug) $this->log->add( $this->id, __('Создание платежной формы для заказа #').$order_id.'.');
     $order = class_exists('WC_Order') ? new WC_Order( $order_id ) : new woocommerce_order( $order_id );
     $yandexMoneyURL = ('yes' == $this->demoMode) ? $this->testURL : $this->liveURL;
 
