@@ -343,6 +343,12 @@ class jaw_yandex_money extends WC_Payment_Gateway {
     if(!empty($this->currency)) $kurs = str_replace(',', '.', $this->currency); else $kurs = 1;
     $order->billing_phone = str_replace(array('+', '-', ' ', '(', ')', '.'), array('', '', '', '', '', ''), $order->billing_phone);
 
+    $customerName = (!empty($order->billing_first_name)) ? $order->billing_first_name : $order->shipping_first_name;
+    $customerName .= (!empty($order->billing_last_name)) ? ' '.$order->billing_last_name : ' '.$order->shipping_last_name;
+
+    $customerAddress = (!empty($order->billing_city)) ? $order->billing_city : $order->shipping_city;
+    $customerAddress .= (!empty($order->billing_address_1)) ? ', '.$order->billing_address_1 : ', '.$order->shippting_address_1;
+
     $yandex_money_args = array(
       'shopId' => $this->shopId, // 	Идентификатор Контрагента, выдается Оператором.
 //        'shopArticleId' => $this->shopArticleId, // Идентификатор товара, выдается Оператором. Применяется, если Контрагент использует несколько платежных форм для разных товаров.
@@ -362,9 +368,9 @@ class jaw_yandex_money extends WC_Payment_Gateway {
       ),
 
       // Служебные параметры, используемые в email-уведомлениях о переводе:
-      'CustName' => $order->billing_first_name.' '.$order->billing_last_name,
-      'CustAddr' => $order->billing_city.', '.$order->billing_address_1,
-      'CustEMail' =>  $order->billing_email,
+      'CustName' => $customerName,
+      'CustAddr' => $customerAddress,
+      'CustEMail' =>  (!empty($order->billing_email) ? $order->billing_email : $order->shipping_email),
       'OrderDetails' => substr($orderDetails, 0, 255),
 
       // Параметры, добавляемые Контрагентом:
