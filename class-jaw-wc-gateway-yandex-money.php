@@ -80,7 +80,7 @@ class jaw_yandex_money extends WC_Payment_Gateway {
     $this->title        = $this->settings['title'];
     $this->description  = $this->settings['description'];
     $this->scid         = $this->settings['scid'];
-    $this->shopId       = $this->settings['shopID'];
+    $this->shopId       = $this->settings['shopId'];
     $this->demoMode     = $this->settings['demomode'];
     $this->debug        = $this->settings['debug'];
 
