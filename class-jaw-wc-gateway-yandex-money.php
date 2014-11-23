@@ -413,7 +413,7 @@ class jaw_yandex_money extends WC_Payment_Gateway {
 
     $yandexArguments = $this->get_form_arguments($order);
 
-    $form_id = 'jaw_yandex_money_gateway_form'
+    $form_id = 'jaw_yandex_money_gateway_form';
     $form = '<form name="ShopForm" method="post" id="'.$form_id.'" action="'.esc_url($yandexMoneyURL).'" target="_top">';
     foreach ($yandexArguments as $name => $value) {
       $form .= '<input type="hidden" name="'.esc_attr($name).'" value="'.esc_attr($value).'" />';
