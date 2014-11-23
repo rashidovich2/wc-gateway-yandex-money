@@ -58,6 +58,11 @@ class jaw_yandex_money extends WC_Payment_Gateway {
    * @var string
    */
   public $callbackFailURL;
+  /**
+   * Отправка формой через POST (предпочтительно) или строкой запроса redirect/querystring
+   * @var string
+   */
+  public $form_submission_method;
 
   public function __construct(){
 
@@ -68,7 +73,7 @@ class jaw_yandex_money extends WC_Payment_Gateway {
     $this->method_title  = __('Яндекс.Деньги', 'jaw_yandex_money');
     $this->method_description = __('Для подключения системы Яндекс.Деньги нужно получить одобрение заявки на подключение ','jaw_yandex_money');
     $this->method_description .= '<a href="https://money.yandex.ru/shoprequest/">https://money.yandex.ru/shoprequest</a><br/>';
-    $this->method_description .= __('После этого Вы получите свой Идентификатор Контрагента <strong>shopId</strong> и Номер витрины Контрагента <strong>scid</strong> которые Вам будет необходимо указат в полях ниже.','jaw_yandex_money');
+    $this->method_description .= __('После этого Вы получите свой Идентификатор Контрагента <strong>shopId</strong> и Номер витрины Контрагента <strong>scid</strong> которые Вам будет необходимо указать в полях ниже.','jaw_yandex_money');
     $this->has_fields   = true;
     $this->liveURL      = 'https://money.yandex.ru/eshop.xml';
     $this->testURL      = 'https://demomoney.yandex.ru/eshop.xml';
@@ -82,10 +87,11 @@ class jaw_yandex_money extends WC_Payment_Gateway {
     $this->scid         = $this->settings['scid'];
     $this->shopId       = $this->settings['shopId'];
     $this->demoMode     = $this->settings['demomode'];
-    $this->debug        = $this->settings['debug'];
+    $this->debug        = ('yes' == $this->settings['debug']);
+    $this->form_submission_method = ('yes' == $this->settings['formSubmissionMethod']);
 
     // Logs
-    $this->log = ('yes' == $this->debug) ? $woocommerce->logger() : false;
+    $this->log = $this->debug ? $woocommerce->logger() : false;
 
     // callback URLs
     $this->callbackSuccessURL = get_permalink($this->settings['shopSuccessURL']);
@@ -98,10 +104,10 @@ class jaw_yandex_money extends WC_Payment_Gateway {
     if(substr_count($this->callbackFailURL,'?page_id=')) $this->callbackFailURL .= '&'; else $this->callbackFailURL .= '?';
     $this->callbackFailURL .= static::$sub_query.'&fail=1';
 
-    if($this->log) {
-      $this->log->add($this->id, 'Success URL = '.$this->callbackSuccessURL);
-      $this->log->add($this->id, 'Fail URL = '.$this->callbackFailURL);
-    }
+//    if($this->log) {
+//      $this->log->add($this->id, 'Success URL = '.$this->callbackSuccessURL);
+//      $this->log->add($this->id, 'Fail URL = '.$this->callbackFailURL);
+//    }
 
     // Hooks
     if (version_compare(WOOCOMMERCE_VERSION, '2.0', '<')) {
@@ -173,22 +179,23 @@ class jaw_yandex_money extends WC_Payment_Gateway {
 
       'enabled' => array(
         'type' => 'checkbox',
-        'title' => __('Включить модуль оплаты Яндекс.Деньги','jaw_yandex_money'),
-        'label' => '',
+        'label' => __('Включить модуль оплаты Яндекс.Деньги','jaw_yandex_money'),
+        'title' => __('Включить/отключить', 'jaw_yandex_money'),
         'default' => 'no',
       ),
 
       'demomode' => array (
         'type' => 'checkbox',
-        'title' => __('Включить тестовый режим','jaw_yandex_money'),
-        'label' => '',
+        'label' => __('Включить тестовый режим','jaw_yandex_money'),
+        'title' => __('Включить/отключить', 'jaw_yandex_money'),
         'default' => 'no',
       ),
 
       'debug' => array(
         'type' => 'checkbox',
-        'title' => __('Включить отладочный режим','jaw_yandex_money'),
-        'label' => '',
+        'label' => __('Включить ведение лога отладки','jaw_yandex_money'),
+        'title' => __('Включить/отключить', 'jaw_yandex_money'),
+        'description' => sprintf(__('Записывать события работы плагина в лог <code>woocommerce/logs/%s-%s.txt</code>', 'jaw_yandex_money'), $this->id, sanitize_file_name(wp_hash($this->id))),
         'default' => 'no',
       ),
 
@@ -227,6 +234,14 @@ class jaw_yandex_money extends WC_Payment_Gateway {
         'type' => 'text',
         'css' => 'width: 100px;',
         'description' => __('Номер витрины контрагента, выдается Оператором.','jaw_yandex_money'),
+      ),
+
+      'formSubmissionMethod' => array(
+        'type' => 'checkbox',
+        'label' => __('Использовать метод отправки формой.','jaw_yandex_money'),
+        'title' => __('Метод отправки', 'jaw_yandex_money'),
+        'description' => __('Включите, чтобы получить возможность отправлять данные о заказах на Яндекс.Деньги через форму (по-умолчанию) вместо redirect/querystring.', 'jaw_yandex_money'),
+        'default' => 'yes',
       ),
 
       'shopSuccessURL' => array(
@@ -273,8 +288,6 @@ class jaw_yandex_money extends WC_Payment_Gateway {
    * @return array|mixed|void
    */
   protected function get_form_arguments($order) {
-
-    global $woocommerce;
 
     $order_items = $order->get_items( apply_filters( 'woocommerce_admin_order_item_types', array( 'line_item', 'fee' ) ) );
     $count  = 0 ;
@@ -400,7 +413,8 @@ class jaw_yandex_money extends WC_Payment_Gateway {
 
     $yandexArguments = $this->get_form_arguments($order);
 
-    $form = '<form name="ShopForm" method="post" id="jaw_yandex_money_gateway_form" action="'.esc_url($yandexMoneyURL).'" target="_top">';
+    $form_id = 'jaw_yandex_money_gateway_form'
+    $form = '<form name="ShopForm" method="post" id="'.$form_id.'" action="'.esc_url($yandexMoneyURL).'" target="_top">';
     foreach ($yandexArguments as $name => $value) {
       $form .= '<input type="hidden" name="'.esc_attr($name).'" value="'.esc_attr($value).'" />';
     }
@@ -429,7 +443,7 @@ class jaw_yandex_money extends WC_Payment_Gateway {
 				        lineHeight:		"24px",
 				    }
 				});
-			jQuery("#submit_jaw_yandex_money_payment_form").click();
+			jQuery(document).ready(function ($){ jQuery("'.$form_id.'").submit(); });
 		' );
 
     return $form;
@@ -441,12 +455,24 @@ class jaw_yandex_money extends WC_Payment_Gateway {
    **/
   function process_payment($order_id){
 
-    $order = new WC_Order($order_id);
+    $order = (!class_exists('WC_Order')) ? new woocommerce_order( $order_id ) : new WC_Order( $order_id );
 
-    /* return array('result' => 'success', 'redirect' => add_query_arg('order',
-         $order->id, add_query_arg('key', $order->order_key, get_permalink(get_option('woocommerce_pay_page_id'))))
-     );*/
-    return array('result' => 'success', 'redirect' => $order->get_checkout_payment_url( true ));
+    if($this->form_submission_method || !version_compare(WOOCOMMERCE_VERSION, '2.1.0', '<')) {
+      return array(
+        'result' => 'success',
+        'redirect' => add_query_arg('order', $order->id, add_query_arg('key', $order->order_key, get_permalink(get_option('woocommerce_pay_page_id'))))
+      );
+    } else {
+      $yandex_args = $this->get_form_arguments($order);
+      $yandex_args = http_build_query($yandex_args, '', '&');
+
+      $paypal_adr = $this->demoMode ? $this->testURL : $this->liveURL . '?';
+
+      return array(
+        'result' 	=> 'success',
+        'redirect'	=> $paypal_adr . $yandex_args
+      );
+    }
 
   }
 
